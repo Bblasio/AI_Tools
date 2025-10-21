@@ -1,12 +1,18 @@
 # ============================================
 # 🧠 TASK 3: NLP with spaCy
-# Dataset: Amazon-style Product Reviews
 # ============================================
 
 import streamlit as st
 import spacy
 from spacy import displacy
-import subprocess
+
+# Load preinstalled model
+@st.cache_resource
+def load_model():
+    return spacy.load("en_core_web_sm")
+
+nlp = load_model()
+
 
 # --------------------------------------------
 # Ensure spaCy model is available
