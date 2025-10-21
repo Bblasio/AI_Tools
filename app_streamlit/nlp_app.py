@@ -1,40 +1,31 @@
-# ============================================
-# 🧠 TASK 3: NLP with spaCy
-# ============================================
-
 import streamlit as st
 import spacy
+import subprocess
+import sys
 from spacy import displacy
 
-# Load preinstalled model
-@st.cache_resource
-def load_model():
-    return spacy.load("en_core_web_sm")
-
-nlp = load_model()
-
-
-# --------------------------------------------
-# Ensure spaCy model is available
-# --------------------------------------------
-@st.cache_resource
-def load_model():
+# =====================================
+# ✅ Ensure model is installed at startup
+# =====================================
+def ensure_spacy_model():
     try:
         return spacy.load("en_core_web_sm")
     except OSError:
-        with st.spinner("Downloading spaCy English model... ⏳"):
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+        st.warning("Downloading spaCy English model (en_core_web_sm)...")
+        subprocess.run(
+            [sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
+            check=True
+        )
         return spacy.load("en_core_web_sm")
 
-nlp = load_model()
+nlp = ensure_spacy_model()
 
-# --------------------------------------------
-# App Title
-# --------------------------------------------
-st.title("💬 NLP App – Amazon Product Review Analyzer")
+# =====================================
+# 🧠 App Content
+# =====================================
+st.title("🧠 NLP Product Review Analyzer")
 
-# Step 1: Sample Reviews
-default_reviews = [
+reviews = [
     "I love my new Samsung Galaxy phone. The camera quality is amazing!",
     "This Apple MacBook Pro is overpriced and the battery life is disappointing.",
     "Sony headphones deliver incredible sound for the price.",
@@ -42,16 +33,23 @@ default_reviews = [
     "I'm unhappy with this Lenovo tablet — it's very slow."
 ]
 
-st.write("### Example Reviews:")
-for r in default_reviews:
-    st.markdown(f"- {r}")
+st.header("🔍 Named Entity Recognition (NER) Results")
 
-# Allow user input
-st.write("---")
-user_review = st.text_area("✍️ Enter your own review to analyze:", "")
-reviews = default_reviews + ([user_review] if user_review else [])
+for review in reviews:
+    st.subheader(f"Review: {review}")
+    doc = nlp(review)
+    if doc.ents:
+        for ent in doc.ents:
+            st.write(f"- **{ent.text}** ({ent.label_})")
+    else:
+        st.write("No entities found.")
+    st.write("---")
 
-# Step 2: Rule-Based Sentiment Setup
+# =====================================
+# 💬 Simple Sentiment Analysis
+# =====================================
+st.header("💬 Sentiment Analysis")
+
 positive_words = ["love", "amazing", "incredible", "perfect", "smoothly"]
 negative_words = ["disappointing", "slow", "overpriced", "unhappy", "bad"]
 
@@ -66,28 +64,14 @@ def analyze_sentiment(text):
     else:
         return "Neutral 😐"
 
-# Step 3: Run Analysis
-if st.button("🔍 Analyze Reviews"):
-    for review in reviews:
-        st.markdown(f"**Review:** {review}")
-        doc = nlp(review)
+for review in reviews:
+    sentiment = analyze_sentiment(review)
+    st.write(f"**{review}** → {sentiment}")
 
-        # Named Entities
-        ents = [(ent.text, ent.label_) for ent in doc.ents]
-        if ents:
-            st.write("**Named Entities:**")
-            for text, label in ents:
-                st.write(f"• {text} ({label})")
-        else:
-            st.write("_No named entities found._")
-
-        # Sentiment
-        sentiment = analyze_sentiment(review)
-        st.write(f"**Sentiment:** {sentiment}")
-        st.write("---")
-
-# Step 4: Visualization Example
-if st.checkbox("🧠 Show Entity Visualization (First Review)"):
-    doc = nlp(reviews[0])
-    html = displacy.render(doc, style="ent")
-    st.components.v1.html(html, height=200, scrolling=True)
+# =====================================
+# 🖼️ Visualize Entities (Optional)
+# =====================================
+st.header("🖼️ Entity Visualization (Sample)")
+doc = nlp(reviews[0])
+html = displacy.render(doc, style="ent")
+st.markdown(html, unsafe_allow_html=True)
