@@ -76,7 +76,7 @@ for review in reviews:
     st.write(f"**{review}** → {sentiment}")
 
 # =====================================
-# 🖼️ Entity Visualization (Optional)
+# 🖼️ Entity Visualization 
 # =====================================
 if "ner" in nlp.pipe_names:
     st.header("🖼️ Entity Visualization (Sample)")
