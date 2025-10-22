@@ -1,24 +1,28 @@
 import streamlit as st
 import spacy
-import subprocess
-import sys
 from spacy import displacy
+import os
 
 # =====================================
-# ✅ Ensure model is installed at startup
+# ✅ Safe model loading with fallback
 # =====================================
-def ensure_spacy_model():
+def load_spacy_model():
     try:
+        # Try to load the model normally
         return spacy.load("en_core_web_sm")
     except OSError:
-        st.warning("Downloading spaCy English model (en_core_web_sm)...")
-        subprocess.run(
-            [sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
-            check=True
-        )
-        return spacy.load("en_core_web_sm")
+        st.warning("⚠️ spaCy model not found. Attempting to load a fallback...")
+        try:
+            # Try using the package directly if preinstalled
+            import en_core_web_sm
+            return en_core_web_sm.load()
+        except ImportError:
+            # Last resort: create a blank English model (tokenization only)
+            st.warning("⚙️ Using a lightweight fallback NLP model (no NER).")
+            nlp_blank = spacy.blank("en")
+            return nlp_blank
 
-nlp = ensure_spacy_model()
+nlp = load_spacy_model()
 
 # =====================================
 # 🧠 App Content
@@ -33,16 +37,19 @@ reviews = [
     "I'm unhappy with this Lenovo tablet — it's very slow."
 ]
 
+# =====================================
+# 🔍 Named Entity Recognition
+# =====================================
 st.header("🔍 Named Entity Recognition (NER) Results")
 
 for review in reviews:
     st.subheader(f"Review: {review}")
     doc = nlp(review)
-    if doc.ents:
+    if "ner" in nlp.pipe_names and doc.ents:
         for ent in doc.ents:
             st.write(f"- **{ent.text}** ({ent.label_})")
     else:
-        st.write("No entities found.")
+        st.write("No named entities available (fallback model in use).")
     st.write("---")
 
 # =====================================
@@ -69,9 +76,12 @@ for review in reviews:
     st.write(f"**{review}** → {sentiment}")
 
 # =====================================
-# 🖼️ Visualize Entities (Optional)
+# 🖼️ Entity Visualization (Optional)
 # =====================================
-st.header("🖼️ Entity Visualization (Sample)")
-doc = nlp(reviews[0])
-html = displacy.render(doc, style="ent")
-st.markdown(html, unsafe_allow_html=True)
+if "ner" in nlp.pipe_names:
+    st.header("🖼️ Entity Visualization (Sample)")
+    doc = nlp(reviews[0])
+    html = displacy.render(doc, style="ent")
+    st.markdown(html, unsafe_allow_html=True)
+else:
+    st.info("Entity visualization unavailable (fallback model in use).")
